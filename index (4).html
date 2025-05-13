@@ -1,0 +1,472 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fama Barber Shop & Beauty Salon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #1A2B4A;
+            --gold: #D4A017;
+            --ivory: #F8F1E9;
+            --teal: #2C7A7B;
+            --neon: #00D4FF;
+            --text-dark: #1A1A1A;
+            --text-light: #FFFFFF;
+            --bg-light: #F8F1E9;
+            --bg-dark: #1A2B4A;
+            --card-bg-light: rgba(255, 255, 255, 0.1);
+            --card-bg-dark: rgba(42, 59, 90, 0.3);
+        }
+
+        [data-theme="dark"] {
+            --text-dark: #FFFFFF;
+            --text-light: #D4A017;
+            --bg-light: #1A2B4A;
+            --bg-dark: #F8F1E9;
+            --card-bg-light: rgba(42, 59, 90, 0.3);
+            --card-bg-dark: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        .smooth-scroll { scroll-behavior: smooth; }
+
+        /* Custom Cursor */
+        .custom-cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, var(--gold) 20%, transparent 80%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease, background 0.3s ease;
+            z-index: 1000;
+        }
+
+        .custom-cursor.hovered {
+            transform: translate(-50%, -50%) scale(1.5);
+            background: radial-gradient(circle, var(--neon) 20%, transparent 80%);
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(90deg, var(--navy) 0%, var(--teal) 100%);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        nav a {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--neon);
+            bottom: -4px;
+            left: 0;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        /* Hero Section */
+        #home {
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1626785774573-4b799315345d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: var(--card-bg-light);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(45deg, var(--gold) 0%, var(--neon) 100%);
+            color: var(--navy);
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.3s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        /* Testimonial Carousel */
+        .carousel {
+            transition: transform 0.5s ease;
+        }
+
+        .testimonial-item {
+            background: var(--card-bg-light);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Gallery Images */
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item img {
+            transition: transform 0.5s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.1);
+        }
+
+        /* Form Inputs */
+        input, select, textarea {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--neon);
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+            outline: none;
+        }
+
+        /* Theme Toggle */
+        #theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        #theme-toggle:hover {
+            transform: rotate(360deg);
+        }
+
+        /* Parallax Effect */
+        .parallax {
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+        }
+    </style>
+</head>
+<body class="smooth-scroll" data-theme="light">
+    <!-- Custom Cursor -->
+    <div class="custom-cursor"></div>
+
+    <!-- Header -->
+    <header class="text-white fixed w-full z-10">
+        <nav class="container mx-auto flex justify-between items-center py-4 px-6">
+            <div class="text-2xl font-bold">Fama Barber Shop & Beauty Salon</div>
+            <ul class="flex space-x-6">
+                <li><a href="#home" class="hover:text-neon transition">Home</a></li>
+                <li><a href="#about" class="hover:text-neon transition">About</a></li>
+                <li><a href="#services" class="hover:text-neon transition">Services</a></li>
+                <li><a href="#gallery" class="hover:text-neon transition">Gallery</a></li>
+                <li><a href="#contact" class="hover:text-neon transition">Contact</a></li>
+            </ul>
+            <div class="flex items-center space-x-4">
+                <button id="theme-toggle" aria-label="Toggle Theme">🌞</button>
+                <a href="#contact" class="btn-primary px-4 py-2 rounded">Book Now</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center text-white parallax" data-aos="fade-up">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-5xl font-bold mb-4">Fama Barber Shop & Beauty Salon</h1>
+            <p class="text-xl mb-6">Premium grooming and beauty services in Denton, TX. Experience style, precision, and elegance.</p>
+            <a href="#contact" class="btn-primary px-6 py-3 rounded-full text-lg">Book Your Appointment</a>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-20" data-aos="fade-right">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">About Fama</h2>
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-6 md:mb-0">
+                    <p class="text-lg">Established in 2020, Fama Barber Shop & Beauty Salon brings premium grooming and beauty services to Denton, TX. Our mission is to blend classic barbering with modern styling and beauty treatments, creating personalized looks that reflect your unique style. With a 4.6-star rating from over 116 reviews, our expert team is dedicated to quality and customer satisfaction.</p>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://images.unsplash.com/photo-1595475207227-15b27f723b1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Barber at work" class="rounded-lg shadow-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="py-20" data-aos="fade-up">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">Our Services</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-card p-6 rounded-lg" data-aos="zoom-in">
+                    <h3 class="text-2xl font-semibold mb-4">Haircuts</h3>
+                    <p class="mb-4">Precision haircuts tailored to your style, from classic cuts to modern fades. Starting at $30.</p>
+                    <a href="#contact" class="text-neon hover:text-gold font-semibold">Book Now</a>
+                </div>
+                <div class="glass-card p-6 rounded-lg" data-aos="zoom-in" data-aos-delay="100">
+                    <h3 class="text-2xl font-semibold mb-4">Beard Services</h3>
+                    <p class="mb-4">Expert beard trims, shaping, and hot towel shaves for a polished look. Starting at $20.</p>
+                    <a href="#contact" class="text-neon hover:text-gold font-semibold">Book Now</a>
+                </div>
+                <div class="glass-card p-6 rounded-lg" data-aos="zoom-in" data-aos-delay="200">
+                    <h3 class="text-2xl font-semibold mb-4">Beauty Salon</h3>
+                    <p class="mb-4">From hair coloring to styling, our salon services enhance your natural beauty. Starting at $40.</p>
+                    <a href="#contact" class="text-neon hover:text-gold font-semibold">Book Now</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-20 parallax" style="background-image: url('https://images.unsplash.com/photo-1521590832167-947bc6264888?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')" data-aos="fade-up">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center text-white mb-12">What Our Clients Say</h2>
+            <div class="flex overflow-hidden" id="testimonial-carousel">
+                <div class="min-w-full testimonial-item">
+                    <p class="text-lg italic mb-4 text-white">"Fama’s barbers are top-notch! My fade is always perfect, and the atmosphere is so welcoming."</p>
+                    <p class="font-semibold text-gold">James T. ★★★★★</p>
+                </div>
+                <div class="min-w-full testimonial-item">
+                    <p class="text-lg italic mb-4 text-white">"The salon services are amazing. My hair color has never looked better!"</p>
+                    <p class="font-semibold text-gold">Sarah L. ★★★★★</p>
+                </div>
+                <div class="min-w-full testimonial-item">
+                    <p class="text-lg italic mb-4 text-white">"A bit pricey, but the quality is worth it. Best barbershop in Denton!"</p>
+                    <p class="font-semibold text-gold">Michael R. ★★★★☆</p>
+                </div>
+            </div>
+            <div class="flex justify-center space-x-4 mt-6">
+                <button onclick="moveCarousel(-1)" class="btn-primary px-4 py-2 rounded">Previous</button>
+                <button onclick="moveCarousel(1)" class="btn-primary px-4 py-2 rounded">Next</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="py-20" data-aos="fade-up">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">Our Gallery</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="gallery-item rounded-lg shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1528742971955-eb6f79f1b3e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Haircut" class="w-full h-48 object-cover">
+                </div>
+                <div class="gallery-item rounded-lg shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1519235624215-85175d5eb36e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Salon treatment" class="w-full h-48 object-cover">
+                </div>
+                <div class="gallery-item rounded-lg shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1605497788044-5a32c7078406?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Shop atmosphere" class="w-full h-48 object-cover">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20" data-aos="fade-up">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">Book Your Appointment</h2>
+            <div class="flex flex-col md:flex-row">
+                <!-- Form -->
+                <div class="md:w-1/2 mb-6 md:mb-0">
+                    <div class="glass-card p-6 rounded-lg">
+                        <div class="mb-4">
+                            <label class="block mb-2" for="name">Your Name</label>
+                            <input type="text" id="name" class="w-full p-2 rounded" placeholder="Enter your name">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block mb-2" for="phone">Phone Number</label>
+                            <input type="tel" id="phone" class="w-full p-2 rounded" placeholder="Enter your phone number">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block mb-2" for="service">Service</label>
+                            <select id="service" class="w-full p-2 rounded">
+                                <option>Haircut</option>
+                                <option>Beard Trim</option>
+                                <option>Beauty Salon</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block mb-2" for="date">Preferred Date</label>
+                            <input type="date" id="date" class="w-full p-2 rounded">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block mb-2" for="message">Message</label>
+                            <textarea id="message" class="w-full p-2 rounded" rows="4" placeholder="Any special requests?"></textarea>
+                        </div>
+                        <button class="btn-primary px-6 py-2 rounded w-full">Submit</button>
+                    </div>
+                </div>
+                <!-- Contact Info -->
+                <div class="md:w-1/2 md:pl-6">
+                    <h3 class="text-2xl font-semibold mb-4">Visit Us</h3>
+                    <p class="mb-4"><strong>Address:</strong> 500 N Bell Ave #109, Denton, TX 76209, United States</p>
+                    <p class="mb-4"><strong>Phone:</strong> +1 940-612-9127</p>
+                    <p class="mb-4"><strong>Hours:</strong> Mon-Fri: 9:00 AM - 7:00 PM, Sat: 9:00 AM - 5:00 PM, Sun: Closed</p>
+                    <img src="https://images.unsplash.com/photo-1517842431800-3e37471cd8e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Shop exterior" class="rounded-lg shadow-lg mb-4 h-48 w-full object-cover">
+                    <a href="https://maps.google.com" target="_blank" class="text-neon hover:text-gold font-semibold">Get Directions</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-10" style="background: linear-gradient(90deg, var(--navy) 0%, var(--teal) 100%)" data-aos="fade-up">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between">
+                <div class="mb-6 md:mb-0">
+                    <h3 class="text-2xl font-bold mb-4 text-white">Fama Barber Shop & Beauty Salon</h3>
+                    <p class="text-ivory">Premium grooming and beauty services in Denton, TX.</p>
+                </div>
+                <div class="mb-6 md:mb-0">
+                    <h4 class="text-lg font-semibold mb-4 text-white">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#home" class="text-ivory hover:text-neon">Home</a></li>
+                        <li><a href="#about" class="text-ivory hover:text-neon">About</a></li>
+                        <li><a href="#services" class="text-ivory hover:text-neon">Services</a></li>
+                        <li><a href="#gallery" class="text-ivory hover:text-neon">Gallery</a></li>
+                        <li><a href="#contact" class="text-ivory hover:text-neon">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 text-white">Newsletter</h4>
+                    <p class="text-ivory mb-4">Subscribe for updates and exclusive offers.</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Enter your email" class="p-2 rounded-l w-full bg-card-bg-light text-white">
+                        <button class="btn-primary px-4 py-2 rounded-r">Subscribe</button>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-ivory mt-8">© 2025 Fama Barber Shop & Beauty Salon. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({ duration: 1000, once: true });
+
+        // Custom Cursor
+        const cursor = document.querySelector('.custom-cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = `${e.clientX}px`;
+            cursor.style.top = `${e.clientY}px`;
+        });
+
+        document.querySelectorAll('a, button, .glass-card').forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
+        });
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', () => {
+            const body = document.body;
+            const isDark = body.getAttribute('data-theme') === 'dark';
+            body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.textContent = isDark ? '🌞' : '🌙';
+        });
+
+        // Testimonial Carousel
+        let currentIndex = 0;
+        const carousel = document.getElementById('testimonial-carousel');
+        const items = carousel.children.length;
+
+        function moveCarousel(direction) {
+            currentIndex = (currentIndex + direction + items) % items;
+            carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
+        }
+    </script>
+</body>
+</html>
